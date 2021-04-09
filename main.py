@@ -1,13 +1,8 @@
-from render.htmlrender import renderBody
-from cache.cacheitem import CacheItem
-from datetime import datetime
-from url.urlfetcher import UrlFetch
+from ui.window import BrowserWindow
+import tkinter as tk
 
 url = input("Enter the URL to fetch: ")
-fetcher = UrlFetch()
-headers, body, scheme = fetcher.fetchUrl(str(url))
-# Fetch twice to test caching
-headers, body, scheme = fetcher.fetchUrl(str(url))
-# print("Headers: {}\n Body: {}".format(headers, body))
 
-renderBody(body, scheme)
+browser = BrowserWindow()
+browser.load(str(url))
+tk.mainloop()

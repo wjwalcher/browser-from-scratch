@@ -1,7 +1,6 @@
-# For now, simply print out the
-# text within the response body
-def renderBody(body, scheme=""):
+def lex(body, scheme=""):
 
+    text = ""
     in_bracket = False
     in_body = False
     view_source = scheme == "view-source:"
@@ -17,7 +16,7 @@ def renderBody(body, scheme=""):
             if body[idx+1:idx+5] == "body":
                 in_body = not in_body
             if (view_source):
-                print(elem, end="")
+                text += elem
         elif (not in_bracket and in_body) or view_source:
             # Convert entities &lt; and &gt; to < and >
             if elem == "&":
@@ -30,4 +29,6 @@ def renderBody(body, scheme=""):
                     skip_iterations = 3
                     continue
 
-            print(elem, end="")
+            text += elem
+    
+    return text
