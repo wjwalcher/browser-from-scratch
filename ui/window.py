@@ -13,6 +13,7 @@ class BrowserWindow:
         self.font_size = 12
         self.fetcher = UrlFetch()
         self.window = tk.Tk()
+        self.font = tkFont.Font(family="Times", size=self.font_size)
         self.window.bind("<Down>", self.scrolldown)
         self.window.bind("<Up>", self.scrollup)
         self.window.bind("<Control-equal>", self.magnifytext)
@@ -33,14 +34,14 @@ class BrowserWindow:
         self.render()
 
     def render(self):
-        font = tkFont.Font(family="Helvetica", size=self.font_size)
         for x, y, c in self.display_list:
             if y > self.scroll + self.HEIGHT: continue
             if y + self.VSTEP < self.scroll: continue 
-            self.canvas.create_text(x, y - self.scroll, text=c, font=font)
+            self.canvas.create_text(x, y - self.scroll, text=c, font=self.font, anchor='nw')
 
     def magnifytext(self, e):
         self.font_size += 1
+        self.refreshFont()
         self.HSTEP += 1
         self.VSTEP += 1
         self.display_list = self.layout()
@@ -48,10 +49,14 @@ class BrowserWindow:
 
     def minifytext(self, e):
         self.font_size -= 1
+        self.refreshFont()
         self.HSTEP -= 1
         self.VSTEP -= 1
         self.display_list = self.layout()
         self.invalidateandrender()
+
+    def refreshFont(self):
+        self.font = tkFont.Font(family="Times", size=self.font_size)
 
     def scrolldown(self, e):
         self.scroll += self.SCROLL_STEP
@@ -80,17 +85,22 @@ class BrowserWindow:
 
     def layout(self):
         cursor_x, cursor_y = self.HSTEP, self.VSTEP
-
         display_list = []
-        for c in self.content:
-            display_list.append((cursor_x, cursor_y, c))
-            cursor_x += self.HSTEP
+        for word in self.content.split():
 
-            if c == "\n":
-                cursor_y += self.VSTEP + 10
-            elif cursor_x >= self.WIDTH - self.HSTEP:
-                cursor_y += self.VSTEP
+            w = self.font.measure(word)
+            display_list.append((cursor_x, cursor_y, word))
+            cursor_x += w + self.font.measure(" ")
+            
+            if word == "\n":
+                cursor_y += self.font.metrics("linespace") * 2.0
                 cursor_x = self.HSTEP
+                continue
+            elif cursor_x + w >= self.WIDTH - self.HSTEP:
+                cursor_y += self.font.metrics("linespace") * 1.2
+                cursor_x = self.HSTEP
+
+            
 
         return display_list
     

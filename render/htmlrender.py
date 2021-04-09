@@ -20,15 +20,20 @@ def lex(body, scheme=""):
         elif (not in_bracket and in_body) or view_source:
             # Convert entities &lt; and &gt; to < and >
             if elem == "&":
-                if body[idx+1:idx+4] == "gt;":
-                    print(">", end="")
-                    skip_iterations = 3
+                if body[idx+1:idx+len("gt;")+1] == "gt;":
+                    text += ">"
+                    skip_iterations = len("gt;")
                     continue
-                elif body[idx+1:idx+4] == "lt;":
-                    print("<", end="")
-                    skip_iterations = 3
+                elif body[idx+1:idx+len("lt;")+1] == "lt;":
+                    text += "<"
+                    skip_iterations = len("lt;")
                     continue
-
+                elif body[idx+1:idx+len("nbsp;")+1] == "nbsp;":
+                    text += "\n"
+                    skip_iterations = len("nbsp;")
+                    continue
+            
+        
             text += elem
     
     return text
