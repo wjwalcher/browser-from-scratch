@@ -20,9 +20,16 @@ class UrlFetch:
         if (headers != None and body != None):
             return headers, body
 
+        # TODO: Add support for data scheme to inline HTML
         assert scheme in ["http://",
-                          "https://"], "Invalid url scheme: {}".format(scheme)
+                          "https://",
+                          "view-source:"], "Invalid url scheme: {}".format(scheme)
         assert len(host) > 0, "No host provided"
+
+        originalScheme = scheme
+        
+        if scheme == "view-source":
+            scheme = "https://"
 
         headers, body, status = buildAndSendRequest(port, scheme, path, host)
         headers, body = handleRedirectIfNeeded(
@@ -30,7 +37,7 @@ class UrlFetch:
 
         self.cacheRequestIfNeeded(status, headers, url, body)
 
-        return headers, body
+        return headers, body, originalScheme
 
     def cacheRequestIfNeeded(self, status, headers, url, body):
         if status != "200":

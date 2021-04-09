@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 import datetime
 
+
 @dataclass
 class CacheItem:
     url: str
@@ -8,4 +9,3 @@ class CacheItem:
     expiration: int
     headers: dict
     body: str
-

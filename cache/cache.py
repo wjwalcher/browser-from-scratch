@@ -26,7 +26,6 @@ class Cache:
 # cache time whether this item is
 # still valid
 def validateLookup(cacheItem):
-    print((cacheItem.request_time + timedelta(seconds=cacheItem.expiration)))
     if ((cacheItem.request_time + timedelta(seconds=cacheItem.expiration)) > datetime.now()):
         return True
 

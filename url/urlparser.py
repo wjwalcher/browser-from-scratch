@@ -2,9 +2,13 @@ import re
 
 
 def parseUrl(url):
-    assert url.startswith("http://") or url.startswith("https://")
+    if(url.startswith("view-source:")):
+        expr = "(view-source:)([a-z]*\.*[\w\d][\w\d]*\.[a-z]*)(:\d*)?(\/.*)?"
+    elif (url.startswith("http://") or url.startswith("https://")):
+        expr = "(https?:\/\/)([a-z]*\.*[\w\d][\w\d]*\.[a-z]*)(:\d*)?(\/.*)?"
+    else:
+        raise Exception("Unsopported scheme")
 
-    expr = "(https?:\/\/)([a-z]*\.*[\w\d][\w\d]*\.[a-z]*)(:\d*)?(\/.*)?"
     match = re.match(expr, url)
     scheme, host, port, path = match.groups()
 
