@@ -48,7 +48,10 @@ class UrlFetch:
             if (max_cache == "no-store"):
                 max_cache = 0
             elif (max_cache.startswith("max-age")):
-                max_cache = int(max_cache[max_cache.index("=")+1:])
+                if (',' in max_cache):
+                    max_cache = int(max_cache[max_cache.index("=")+1:max_cache.index(",")])
+                else:
+                    max_cache = int(max_cache[max_cache.index("=")+1:])
         except KeyError:
             max_cache = 0
 

@@ -1,70 +1,75 @@
-import tkinter as tk
-import tkinter.font as tkFont
+import tkinter
+import tkinter.font
 from url.urlfetcher import UrlFetch
-from render.htmlrender import lex
+from render.htmlrender import lex, grabBody, Text, Tag
+from render.layout import Layout
+
 
 class BrowserWindow:
 
     def __init__(self):
         self.WIDTH, self.HEIGHT = 1000, 800
-        self.HSTEP, self.VSTEP = 13, 18
+        self.HSTEP, self.VSTEP = 20, 18
         self.SCROLL_STEP = 100
         self.scroll = 0
-        self.font_size = 12
+
         self.fetcher = UrlFetch()
-        self.window = tk.Tk()
-        self.font = tkFont.Font(family="Times", size=self.font_size)
+        self.layout = Layout()
+        self.window = tkinter.Tk()
         self.window.bind("<Down>", self.scrolldown)
         self.window.bind("<Up>", self.scrollup)
         self.window.bind("<Control-equal>", self.magnifytext)
         self.window.bind("<Control-minus>", self.minifytext)
-        self.canvas = tk.Canvas(self.window, width=self.WIDTH, height=self.HEIGHT)
+        self.canvas = tkinter.Canvas(
+            self.window, width=self.WIDTH, height=self.HEIGHT)
+            
         # NOTE: These two scroll wheel bindings are Linux specific
         self.window.bind("<Button-4>", self.scrollmouseup)
         self.window.bind("<Button-5>", self.scrollmousedown)
-        self.window.bind("<Configure>", self.resizewindow)
+        self.canvas.bind("<Configure>", self.resizewindow)
 
-        self.canvas.pack(expand=True, fill=tk.BOTH)
+        self.canvas.pack(expand=True, fill=tkinter.BOTH)
 
     def load(self, url):
 
         headers, body, scheme = self.fetcher.fetchUrl(url)
-        self.content = lex(body, scheme)
-        self.display_list = self.layout()
+        body = grabBody(body)
+        self.content = lex(body)
+        print("Lexing complete")
+        self.display_list = self.layout.generateLayout(
+            self.content, self.WIDTH)
+        print("Layout complete")
         self.render()
+        print("Render complete")
 
     def render(self):
-        for x, y, c in self.display_list:
-            if y > self.scroll + self.HEIGHT: continue
-            if y + self.VSTEP < self.scroll: continue 
-            self.canvas.create_text(x, y - self.scroll, text=c, font=self.font, anchor='nw')
-
-    def magnifytext(self, e):
-        self.font_size += 1
-        self.refreshFont()
-        self.HSTEP += 1
-        self.VSTEP += 1
-        self.display_list = self.layout()
-        self.invalidateandrender()
-
-    def minifytext(self, e):
-        self.font_size -= 1
-        self.refreshFont()
-        self.HSTEP -= 1
-        self.VSTEP -= 1
-        self.display_list = self.layout()
-        self.invalidateandrender()
-
-    def refreshFont(self):
-        self.font = tkFont.Font(family="Times", size=self.font_size)
-
-    def scrolldown(self, e):
-        self.scroll += self.SCROLL_STEP
-        self.invalidateandrender()
+        for x, y, c, f in self.display_list:
+            if y > self.scroll + self.HEIGHT:
+                continue
+            if y + self.VSTEP < self.scroll:
+                continue
+            self.canvas.create_text(
+                x, y - self.scroll, text=c, font=f, anchor='nw')
 
     def invalidateandrender(self):
         self.canvas.delete("all")
         self.render()
+
+    def magnifytext(self, e):
+        self.layout.incFontSize()
+        self.display_list = self.layout.generateLayout(
+            self.content, self.WIDTH)
+        self.invalidateandrender()
+
+    def minifytext(self, e):
+        self.layout.decFontSize()
+        self.display_list = self.layout.generateLayout(
+            self.content, self.WIDTH)
+        self.invalidateandrender()
+
+    def scrolldown(self, e):
+        self.scroll += self.SCROLL_STEP
+        self.invalidateandrender()
 
     def scrollup(self, e):
         if self.scroll > 0:
@@ -78,29 +83,12 @@ class BrowserWindow:
         self.scrolldown(e)
 
     def resizewindow(self, e):
+
         self.WIDTH = e.width
         self.HEIGHT = e.height
-        self.display_list = self.layout()
+        print(e.width, e.height)
+        self.display_list = self.layout.generateLayout(
+            self.content, self.WIDTH)
+        print("RESIZE: Layout finished, re-rendering...")
         self.invalidateandrender()
-
-    def layout(self):
-        cursor_x, cursor_y = self.HSTEP, self.VSTEP
-        display_list = []
-        for word in self.content.split():
-
-            w = self.font.measure(word)
-            display_list.append((cursor_x, cursor_y, word))
-            cursor_x += w + self.font.measure(" ")
-            
-            if word == "\n":
-                cursor_y += self.font.metrics("linespace") * 2.0
-                cursor_x = self.HSTEP
-                continue
-            elif cursor_x + w >= self.WIDTH - self.HSTEP:
-                cursor_y += self.font.metrics("linespace") * 1.2
-                cursor_x = self.HSTEP
-
-            
-
-        return display_list
-    
+        print("RESIZE: Re-rendering complete.")
