@@ -1,8 +1,8 @@
 import tkinter
 import tkinter.font
-from url.urlfetcher import UrlFetch
-from render.htmlrender import lex, grabBody, Text, Tag
+from render.htmlparser import HTMLParser
 from render.layout import Layout
+from url.urlfetcher import UrlFetch
 
 
 class BrowserWindow:
@@ -14,33 +14,32 @@ class BrowserWindow:
         self.scroll = 0
 
         self.fetcher = UrlFetch()
+        self.html_parser = HTMLParser()
         self.layout = Layout()
         self.window = tkinter.Tk()
-        self.window.bind("<Down>", self.scrolldown)
-        self.window.bind("<Up>", self.scrollup)
-        self.window.bind("<Control-equal>", self.magnifytext)
-        self.window.bind("<Control-minus>", self.minifytext)
+
         self.canvas = tkinter.Canvas(
             self.window, width=self.WIDTH, height=self.HEIGHT)
-            
-        # NOTE: These two scroll wheel bindings are Linux specific
-        self.window.bind("<Button-4>", self.scrollmouseup)
-        self.window.bind("<Button-5>", self.scrollmousedown)
-        self.canvas.bind("<Configure>", self.resizewindow)
+
+        self.initializeKeyBindings()
 
         self.canvas.pack(expand=True, fill=tkinter.BOTH)
 
-    def load(self, url):
+    def initializeKeyBindings(self):
+        self.window.bind("<Down>", self.scrollDown)
+        self.window.bind("<Up>", self.scrollUp)
+        self.window.bind("<Control-equal>", self.magnifyText)
+        self.window.bind("<Control-minus>", self.minifyText)
+        # NOTE: These two scroll wheel bindings are Linux specific
+        self.window.bind("<Button-4>", self.scrollMouseUp)
+        self.window.bind("<Button-5>", self.scrollMouseDown)
+        self.canvas.bind("<Configure>", self.resizeWindow)
 
+    def load(self, url):
         headers, body, scheme = self.fetcher.fetchUrl(url)
-        body = grabBody(body)
-        self.content = lex(body)
-        print("Lexing complete")
-        self.display_list = self.layout.generateLayout(
-            self.content, self.WIDTH)
-        print("Layout complete")
+        self.root = self.html_parser.parse(body)
+        self.display_list = self.layout.generateLayout(self.root, self.WIDTH)
         self.render()
-        print("Render complete")
 
     def render(self):
         for x, y, c, f in self.display_list:
@@ -48,47 +47,46 @@ class BrowserWindow:
                 continue
             if y + self.VSTEP < self.scroll:
                 continue
+
             self.canvas.create_text(
                 x, y - self.scroll, text=c, font=f, anchor='nw')
 
-    def invalidateandrender(self):
+    def invalidateAndRerender(self):
         self.canvas.delete("all")
         self.render()
 
-    def magnifytext(self, e):
+    def magnifyText(self, e):
         self.layout.incFontSize()
         self.display_list = self.layout.generateLayout(
-            self.content, self.WIDTH)
-        self.invalidateandrender()
+            self.page_elements, self.WIDTH)
+        self.invalidateAndRerender()
 
-    def minifytext(self, e):
+    def minifyText(self, e):
         self.layout.decFontSize()
         self.display_list = self.layout.generateLayout(
-            self.content, self.WIDTH)
-        self.invalidateandrender()
+            self.page_elements, self.WIDTH)
+        self.invalidateAndRerender()
 
-    def scrolldown(self, e):
+    def scrollDown(self, e):
         self.scroll += self.SCROLL_STEP
-        self.invalidateandrender()
+        self.invalidateAndRerender()
 
-    def scrollup(self, e):
+    def scrollUp(self, e):
         if self.scroll > 0:
             self.scroll -= self.SCROLL_STEP
-            self.invalidateandrender()
+            self.invalidateAndRerender()
 
-    def scrollmouseup(self, e):
-        self.scrollup(e)
+    def scrollMouseUp(self, e):
+        self.scrollUp(e)
 
-    def scrollmousedown(self, e):
-        self.scrolldown(e)
+    def scrollMouseDown(self, e):
+        self.scrollDown(e)
 
-    def resizewindow(self, e):
-
+    def resizeWindow(self, e):
         self.WIDTH = e.width
         self.HEIGHT = e.height
-        print(e.width, e.height)
+
         self.display_list = self.layout.generateLayout(
-            self.content, self.WIDTH)
-        print("RESIZE: Layout finished, re-rendering...")
-        self.invalidateandrender()
-        print("RESIZE: Re-rendering complete.")
+            self.root, self.WIDTH)
+
+        self.invalidateAndRerender()

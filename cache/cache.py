@@ -4,14 +4,14 @@ from datetime import timedelta, datetime
 class Cache:
 
     def __init__(self):
-        self.cachelines = dict()
+        self.cacheLines = dict()
 
     def addItemToCache(self, cacheItem):
-        self.cachelines[cacheItem.url] = cacheItem
+        self.cacheLines[cacheItem.url] = cacheItem
 
     def lookupInCache(self, url):
         try:
-            cacheItem = self.cachelines[url]
+            cacheItem = self.cacheLines[url]
         except KeyError:
             return None, None
 

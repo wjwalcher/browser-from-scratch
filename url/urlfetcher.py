@@ -1,4 +1,3 @@
-# From following along with https://browser.engineering/http.html
 import socket
 import ssl
 from .urlparser import parseUrl, parseRedirectPortPath
@@ -15,19 +14,17 @@ class UrlFetch:
     def fetchUrl(self, url):
         scheme, host, port, path = parseUrl(url)
 
-        # First, check the cache
         headers, body = self.cache.lookupInCache(url)
         if (headers != None and body != None):
             return headers, body
 
-        # TODO: Add support for data scheme to inline HTML
         assert scheme in ["http://",
                           "https://",
                           "view-source:"], "Invalid url scheme: {}".format(scheme)
         assert len(host) > 0, "No host provided"
 
         originalScheme = scheme
-        
+
         if scheme == "view-source":
             scheme = "https://"
 
@@ -35,6 +32,7 @@ class UrlFetch:
         headers, body = handleRedirectIfNeeded(
             status, body, headers, port, scheme, path, host)
 
+        # TODO: Fix issue with date parsing in this function
         self.cacheRequestIfNeeded(status, headers, url, body)
 
         return headers, body, originalScheme
@@ -43,28 +41,34 @@ class UrlFetch:
         if status != "200":
             return
 
+        max_cache = self.determineCacheTime(headers)
+
+        if (max_cache != 0):
+            date = datetime.strptime(
+                headers['date'], "%a, %d %b %Y %H:%M:%S %Z")
+            self.cache.addItemToCache(
+                CacheItem(url, date, max_cache, headers, body))
+
+    def determineCacheTime(self, headers):
         try:
             max_cache = headers['cache-control']
             if (max_cache == "no-store"):
                 max_cache = 0
             elif (max_cache.startswith("max-age")):
                 if (',' in max_cache):
-                    max_cache = int(max_cache[max_cache.index("=")+1:max_cache.index(",")])
+                    max_cache = int(
+                        max_cache[max_cache.index("=")+1:max_cache.index(",")])
                 else:
                     max_cache = int(max_cache[max_cache.index("=")+1:])
         except KeyError:
             max_cache = 0
 
-        if (max_cache != 0):
-            # Thu, 08 Apr 2021 19:27:31 GMT
-            date = datetime.strptime(
-                headers['date'], "%a, %m %b %Y %H:%M:%S %Z")
-            self.cache.addItemToCache(
-                CacheItem(url, date, max_cache, headers, body))
+        return max_cache
 
 
 def handleRedirectIfNeeded(status, body, headers, port, scheme, path, host):
     MAX_REDIRECTS = 10
+
     if (status.startswith("3")):
         numRedirects = 1
         while(status.startswith("3") and numRedirects < MAX_REDIRECTS):
@@ -98,10 +102,12 @@ def buildAndSendRequest(port, scheme, path, host):
     s.connect((host, port))
     requestString = buildRequestString(host, path, "close")
     bytesSent = s.send(requestString)
+
     # Now read back the response
     response = s.makefile("r", encoding="utf8", newline="\r\n")
     statusLine = response.readline()
     version, status, explanation = statusLine.split(" ", 2)
+
     # Read headers into a map
     headers = extractHeaders(response)
     body = response.read()

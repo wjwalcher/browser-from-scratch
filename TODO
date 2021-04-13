@@ -1,0 +1,8 @@
+- Re-implement support for view-source
+- Add support for various entities (&lt; &gt; etc.)
+- Fix caching timestamp parsing
+- Add support for HTTP compression w/ gzip
+- Add data scheme to inject HTML into browser
+- Add Emoji support
+- Make text centering more robust
+- Various tag support: sup, abbr, pre, soft hyphens
